@@ -195,6 +195,8 @@ function amdefine(module, requireFn) {
         //Split the ID by a ! so that
         var index = id.indexOf('!'),
             originalId = id,
+            // If using requirejs, try using it resolve the module path
+            requirejsId = requirejsVars ? requirejsVars.require.config().toUrl(id) : null,
             prefix, plugin;
 
         if (index === -1) {
@@ -215,6 +217,18 @@ function amdefine(module, requireFn) {
                 return loaderCache[id];
             } else {
                 if(systemRequire) {
+                    if (requirejsId) {
+                        // Try to load module as resolved by requirejs
+                        try {
+                            return systemRequire(requirejsId);
+                        } catch(err) {
+                            // Fall through to using originalId if requirejsId not found
+                            if (!("code" in err && err.code === "MODULE_NOT_FOUND")) {
+                                // Throw all other errors
+                                throw err;
+                            }
+                        }
+                    }
                     return systemRequire(originalId);
                 } else {
                     throw new Error('No module with ID: ' + id);
